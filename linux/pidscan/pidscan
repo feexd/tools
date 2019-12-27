@@ -1,0 +1,17 @@
+#!/bin/bash
+
+printf "%s\t\t%s\t\t %s\n" "PID PPID CMD"
+while true; do
+    for f in /proc/*/exe; do
+        [[ $f == *self* ]] && continue
+        tmp=${f%/*}
+        pid=${tmp##*/}
+        ppid=$(cat /proc/${pid}/status 2>/dev/null | awk '/^PPid:/ {print $2}')
+        cmdline=$(cat /proc/${pid}/cmdline 2>/dev/null| tr '\0' ' ')
+
+        if [[ ! -z ${cmdline} ]] && [[ ! -z ${ppid} ]] ; then
+            printf "%s\t\t%s\t\t%s\n" "$pid" "${ppid}" "${cmdline}"
+        fi
+    done
+done
+
