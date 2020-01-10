@@ -11,10 +11,11 @@ class Emulator():
     program = open("/tmp/bbb", "rb").read() + b"\x90"*8
     Emulator("x86_32").run(program)
     """
-    def __init__(self, arch):
+    def __init__(self, arch, show_output=True):
         self.text_base = 0x0000
         self.stack_base = 0xfffdd000
         self.stack_size = 0x21000
+        self.show_output = show_output
 
         if arch == "x86_32":
             self.mu = Uc(UC_ARCH_X86, UC_MODE_32)
@@ -34,11 +35,12 @@ class Emulator():
         inst = mu.mem_read(address, size)
 
         for dis in self.md.disasm(inst, size):
-            print(hex(address),
-                    "{:16x}".format(int.from_bytes(mu.mem_read(address, size), byteorder='little')),
-                    "\t",
-                    dis.mnemonic,
-                    dis.op_str)
+            if self.show_output:
+                print(hex(address),
+                        "{:16x}".format(int.from_bytes(mu.mem_read(address, size), byteorder='little')),
+                        "\t",
+                        dis.mnemonic,
+                        dis.op_str)
             if dis.mnemonic.startswith("int"):
                 mu.reg_write(self.ip, address + size)
 
@@ -48,12 +50,14 @@ class Emulator():
         self.mu.reg_write(self.sp, self.stack_base + self.stack_size)
 
         self.mu.hook_add(UC_HOOK_CODE, self.hook_code)
-        print("[+] - Starting emulation")
+        if self.show_output:
+            print("[+] - Starting emulation")
         self.mu.emu_start(self.text_base, len(code))
 
         esp = self.mu.reg_read(self.sp)
-        stack_contents = bytes(self.mu.mem_read(esp, self.stack_base +self.stack_size - 16 - esp))
-        print("STACK <{} bytes>: ".format(len(stack_contents)))
-        hexdump(stack_contents)
+        stack_contents = bytes(self.mu.mem_read(esp, self.stack_base + self.stack_size - 16 - esp))
+        if self.show_output:
+            print("STACK <{} bytes>: ".format(len(stack_contents)))
+            hexdump(stack_contents)
 
         return self.mu
