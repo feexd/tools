@@ -6,7 +6,8 @@ import sys
 
 def emulate(fname, arch):
     program = open(fname, "rb").read() + b"\x90"*8
-    emulator.Emulator(arch).run(program)
+    e = emulator.Emulator(arch)
+    e.run(program, hook_fn=e.print_code)
 
 if __name__ == "__main__":
     if len(sys.argv) != 3:
