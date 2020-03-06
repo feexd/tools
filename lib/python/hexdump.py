@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 # -*- coding: latin-1 -*-
 
+# Taken from: https://github.com/smorin/hextool/blob/master/hexdump.py
+
 # <-- removing this magic comment breaks Python 3.4 on Windows
 """
 1. Dump binary data to the following text format:
